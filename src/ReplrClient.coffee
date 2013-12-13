@@ -89,11 +89,12 @@ class ReplrClient
     exported = @repl.context.exported
     commands = (key for key in Object.keys(exported) when typeof exported[key] == 'function')
 
-    signatureAsString = (name, func)-> "#{key}(#{doc.docArgsAsString(func).join(', ')})"
+    signatureAsString = (name, func)-> "#{key}(#{doc.docArgsAsArray(func).join(', ')})"
 
     longest = 0
     for key in commands
-      longest = signatureAsString(key, exported[key]).length if key.length > longest
+      signature = signatureAsString(key, exported[key])
+      longest = signature.length if signature.length > longest
 
     indentBy = longest + 6
 
