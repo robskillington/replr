@@ -1,0 +1,22 @@
+{
+  "name": "replr",
+  "description": "Remote REPL access for Node apps/services with Cluster hosted support",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/robskillington/replr"
+  },
+  "author": {
+    "name": "Rob Skillington",
+    "url": "http://github.com/robskillington"
+  },
+  "dependencies": {
+    "coffee-script": "~1.6.3",
+    "merge": "~1.1.2",
+    "coffee-errors": "~0.8.4",
+    "colors": "~0.6.2",
+    "doc": "0.0.2",
+    "terminal": "~0.1.4",
+    "memorystream": "~0.2.0"
+  }
+}
