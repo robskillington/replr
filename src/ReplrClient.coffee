@@ -17,7 +17,7 @@ class ReplrClient
     # Sets properties
 
 
-  send: (msg, callback=null)->
+  write: (msg, callback=null)->
     if !@options.terminal
       msg = terminal.stripStyles(msg)
       for value in @TERM_CODES_VALUES
@@ -32,8 +32,8 @@ class ReplrClient
       @socket.write msg
 
 
-  sendResult: (result)->
-    @send "\n#{@indent(result, 2)}\n\n"
+  send: (result, callback=null)->
+    @write "\n#{@indent(result, 2)}\n\n", callback
     return
 
 
@@ -47,15 +47,15 @@ class ReplrClient
   exports: ()->
     cmds = ()=> 
       doc: "Prints all available commands in the local REPL context with documentation"
-      @sendResult @getCommands()
+      @send @getCommands()
 
     vars = ()=>
       doc: "Prints all available variables in the local REPL context and their types"
-      @sendResult @getVars()
+      @send @getVars()
 
     workers = ()=>
       doc: "Prints all workers running on this cluster"
-      @sendResult @getWorkers()
+      @send @getWorkers()
 
     cw = (workerId)=>
       doc: "Changes into the worker context with the given workerId"
@@ -64,6 +64,7 @@ class ReplrClient
     exports = 
       help: 'Type .help for repl help, use cmds() to get commands in current context'
       exit: 'Did you mean .exit?'
+      repl: @repl
       replOptions: @options
       cmds: cmds
       vars: vars
@@ -81,7 +82,7 @@ class ReplrClient
         @server.forwardToWorker @, worker
         return
 
-    @sendResult "Could not find worker with worker ID '#{workerId}'"
+    @send "Could not find worker with worker ID '#{workerId}'"
 
 
   getCommands: ()->
@@ -124,7 +125,7 @@ class ReplrClient
 
     longest = 0
     for key in vars
-      longest = key if key.length > longest
+      longest = key.length if key.length > longest
 
     indentBy = longest + 6
 
@@ -132,7 +133,7 @@ class ReplrClient
     for key in vars
       value = exported[key]
       formattedKey = terminal.rpad key, indentBy
-      descriptions.push "#{key}#{if value.name != undefined then value.name else typeof value}"
+      descriptions.push "#{formattedKey}#{typeof value}"
 
     if descriptions.length > 0
       descriptions.unshift ''
@@ -157,7 +158,7 @@ class ReplrClient
 
 
   welcome: ()->
-    @send [@TERM_CODES.clear,  @TERM_CODES.zeroPos,  @getWelcomeMessage()].join ''
+    @write [@TERM_CODES.clear,  @TERM_CODES.zeroPos,  @getWelcomeMessage()].join ''
 
 
   getWelcomeMessage: ()->

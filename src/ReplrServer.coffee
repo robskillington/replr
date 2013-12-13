@@ -67,7 +67,7 @@ class ReplrServer
       r.context[key] = value
 
     if @options.exports && typeof @options.exports == 'function'
-      exports = @options.exports()
+      exports = @options.exports(client)
       if exports && Object.keys(exports).length > 0 
         for key, value of exports
           r.context.exported[key] = value
