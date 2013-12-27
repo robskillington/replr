@@ -4,6 +4,7 @@ merge = require('merge')
 cluster = require('cluster')
 colors = require('colors')
 terminal = require('terminal')
+async = require('async')
 MemoryStream = require('memorystream')
 ReplrClient = require('./ReplrClient')
 ReplrEvents = require('./ReplrEvents')
@@ -82,7 +83,8 @@ class ReplrServer
       type: ReplrEvents::WORKER_RECEIVE
       options: @options
 
-    # Keep the REPL alive but attached to dummy so we remove client after connection closes
+    # Keep the REPL alive but attached to dummy so we 
+    # only remove the client after connection closes
     dummy = new MemoryStream()
     client.repl.inputStream = dummy
     client.repl.outputStream = dummy
@@ -92,16 +94,21 @@ class ReplrServer
     worker.send msg, client.socket
 
 
-  describeWorkers: ()->
-    descriptions = []
-    for id, worker of cluster.workers
-      description = "[#{id}] id=#{id}, pid=#{worker.process.pid}\n"
-      if typeof @options.describeWorker == 'function'
-        custom = @options.describeWorker worker
-        description += terminal.lpad(custom, 1)
-      descriptions.push description
+  describeWorkers: (callback)->
+    formatTitle = (id, worker)-> "[#{id}] id=#{id}, pid=#{worker.process.pid}\n"
 
-    return descriptions.join "\n"
+    if typeof @options.describeWorker == 'function'
+      workersArray = (worker for id, worker of cluster.workers)
+
+      async.map workersArray, (worker, cb)=>
+        @options.describeWorker worker, (description)=>
+          str = "#{formatTitle(worker.id, worker)}#{terminal.lpad(description, 1)}"
+          cb null, str
+      , (err, results)=>
+        callback results.join("\n")
+
+    else 
+      callback (formatTitle(id, worker) for id, worker of cluster.workers).join("\n")
 
 
 module.exports = ReplrServer

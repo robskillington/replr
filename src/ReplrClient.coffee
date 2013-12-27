@@ -55,9 +55,15 @@ class ReplrClient
 
     workers = ()=>
       doc: "Prints all workers running on this cluster"
-      @send @getWorkers()
+      prompt = @repl.prompt
+      @repl.prompt = ''
+      @getWorkersDescription (description)=>
+        @send description
+        @write prompt
+        @repl.prompt = prompt
+      return 'printing...'
 
-    cw = (workerId)=>
+    select = (workerId)=>
       doc: "Changes into the worker context with the given workerId"
       @changeWorker workerId
 
@@ -71,7 +77,7 @@ class ReplrClient
 
     if cluster.isMaster
       exports.workers = workers 
-      exports.cw = cw
+      exports.select = select
 
     return exports
 
@@ -148,42 +154,46 @@ class ReplrClient
     return descriptions.join "\n"
 
 
-  getWorkers: ()->
-    active = Object.keys(cluster.workers).length
-    plural = if active != 1 then 's' else ''
-    nonEssentialLineBreak = if active > 0 then "\n" else ''
-    """
-    #{"(#{active}) worker active#{plural}#{nonEssentialLineBreak}".cyan}
-    #{@server.describeWorkers()}
-    """
+  getWorkersDescription: (callback)->
+    @server.describeWorkers (description)=>
+      active = Object.keys(cluster.workers).length
+      plural = if active != 1 then 's' else ''
+      nonEssentialLineBreak = if active > 0 then "\n" else ''
+
+      callback """
+               #{"(#{active}) worker active#{plural}#{nonEssentialLineBreak}".cyan}
+               #{description}
+               """
 
 
   welcome: ()->
-    @write [@TERM_CODES.clear,  @TERM_CODES.zeroPos,  @getWelcomeMessage()].join ''
+    @getWelcomeMessage (message)=>
+      @write [@TERM_CODES.clear, @TERM_CODES.zeroPos, message].join ''
 
 
-  getWelcomeMessage: ()->
+  getWelcomeMessage: (callback)->
     title = 'Welcome'.cyan.bold
     hint = 'Hint: use cmds() to print the current exports available to you'
 
     if cluster.isMaster
-      """
-      #{title} #{@options.name}[Cluster]
+      @getWorkersDescription (description)=>
+        callback  """
+                  #{title} #{@options.name}[Cluster]
 
-      #{@indent(@getWorkers(), 2)}
+                  #{@indent(description, 2)}
 
-      #{hint}
+                  #{hint}
 
-      #{@options.prompt}
-      """
+                  #{@repl.prompt}
+                  """
     else 
-      """
-      #{title} to #{@options.name}[Worker]
+      callback  """
+                #{title} to #{@options.name}[Worker]
 
-      #{hint}
+                #{hint}
 
-      #{@options.prompt}
-      """
+                #{@repl.prompt}
+                """
 
 
 module.exports = ReplrClient

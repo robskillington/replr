@@ -13,10 +13,10 @@
   "dependencies": {
     "coffee-script": "~1.6.3",
     "merge": "~1.1.2",
-    "coffee-errors": "~0.8.4",
     "colors": "~0.6.2",
     "doc": "0.0.3",
     "terminal": "~0.1.4",
-    "memorystream": "~0.2.0"
+    "memorystream": "~0.2.0",
+    "async": "~0.2.9"
   }
 }
