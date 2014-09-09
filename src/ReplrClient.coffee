@@ -27,7 +27,8 @@ class ReplrClient
           # Noop, some versions of node does not support unicode literals
 
     if !@options.useColors
-      msg = msg.stripColors()
+      if typeof msg.stripColors == 'function'
+        msg = msg.stripColors()
 
     if callback
       @socket.write msg, callback
