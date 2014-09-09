@@ -21,7 +21,10 @@ class ReplrClient
     if !@options.terminal
       msg = terminal.stripStyles(msg)
       for value in @TERM_CODES_VALUES
-        msg = msg.replace new RegExp(value, 'g'), ''
+        try
+          msg = msg.replace new RegExp(value, 'g'), ''
+        catch err
+          # Noop, some versions of node does not support unicode literals
 
     if !@options.useColors
       msg = msg.stripColors()
