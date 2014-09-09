@@ -11,12 +11,12 @@
     "url": "http://github.com/robskillington"
   },
   "dependencies": {
-    "coffee-script": "~1.6.3",
-    "merge": "~1.1.2",
-    "colors": "~0.6.2",
+    "coffee-script": "1.6.3",
+    "merge": "1.1.2",
+    "colors": "0.6.2",
     "doc": "0.0.3",
-    "terminal": "~0.1.4",
-    "memorystream": "~0.2.0",
-    "async": "~0.2.9"
+    "terminal": "0.1.4",
+    "memorystream": "0.2.0",
+    "async": "0.2.9"
   }
 }
