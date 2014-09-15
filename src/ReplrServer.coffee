@@ -5,12 +5,14 @@ cluster = require('cluster')
 colors = require('colors')
 terminal = require('terminal')
 async = require('async')
+EventEmitter = require('events').EventEmitter
 MemoryStream = require('memorystream')
+portscanner = require('portscanner')
 ReplrClient = require('./ReplrClient')
 ReplrEvents = require('./ReplrEvents')
 Util = require('./Util')
 
-class ReplrServer
+class ReplrServer extends EventEmitter
 
   @::OPTIONS_DEFAULT = 
     name: 'Replr'
@@ -32,13 +34,44 @@ class ReplrServer
 
     @options = merge @OPTIONS_DEFAULT, options
     @clients = []
+    @started = false
+    @starting = false
     return if start then @start() else @
 
 
-  start: ()->
-    @socketServer = net.createServer @open.bind(@)
-    @socketServer.listen @options.port
-    return @
+  start: (callback)->
+    return if @starting
+    @starting = true
+    portscanner.checkPortStatus @options.port, '127.0.0.1', (err, status)=>
+      if err || status == 'open'
+        callback(err || new Error('Port already taken')) if callback
+        return
+    
+      @socketServer = net.createServer @open.bind(@)
+      @socketServer.on 'listening', ()=>
+        @started = true
+        @starting = false
+        @emit 'listening'
+
+      try 
+        @socketServer.listen @options.port
+      catch err
+        @started = false
+        @starting = false
+        callback err if callback
+
+
+  close: (callback)->
+    if @starting
+      @once 'listening', ()=>
+        @close callback
+    else if @started
+      @socketServer.close ()=>
+        @started = false
+        @emit 'close'
+        callback() if callback
+    else
+      callback(new Error('Already closed'))
 
 
   open: (socket)->

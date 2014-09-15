@@ -4,8 +4,8 @@ ReplrWorkerPassthrough = require('./src/ReplrWorkerPassthrough')
 
 # Expose simple REPL creation and worker REPL options
 funcs = 
-  create: ()-> 
-    return ReplrServer.apply(Object.create(ReplrServer.prototype), arguments)
+  create: (options)-> 
+    return new ReplrServer(options)
 
   configureAsWorker: (options)-> 
     ReplrWorkerPassthrough::workerOptions = options
