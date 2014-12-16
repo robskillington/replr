@@ -27,7 +27,10 @@ class ReplrServer extends EventEmitter
   constructor: (options, start=true)->
     if options 
       if options.port
-        throw new Error('bad port') if !Util::isInt(options.port) || options.port < 1
+        if typeof options.port == 'number'
+          throw new Error('bad port') if !Util::isInt(options.port) || options.port < 1
+        else if typeof options.port != 'string'
+          throw new Error('bad port')
       if options.prompt
         throw new Error('bad prompt') if typeof options.prompt != 'string'
       #todo: validate other options
@@ -42,7 +45,8 @@ class ReplrServer extends EventEmitter
   start: (callback)->
     return if @starting
     @starting = true
-    portscanner.checkPortStatus @options.port, '127.0.0.1', (err, status)=>
+
+    onVerified = (err, status)=>
       if err || status == 'open'
         callback(err || new Error('Port already taken')) if callback
         return
@@ -53,12 +57,17 @@ class ReplrServer extends EventEmitter
         @starting = false
         @emit 'listening'
 
-      try 
+      try
         @socketServer.listen @options.port
       catch err
         @started = false
         @starting = false
         callback err if callback
+
+    if typeof @options.port == 'number'
+      portscanner.checkPortStatus @options.port, '127.0.0.1', onVerified
+    else 
+      onVerified null, 'free'
 
 
   close: (callback)->
