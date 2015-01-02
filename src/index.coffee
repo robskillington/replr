@@ -1,6 +1,6 @@
 repl = require('repl')
-ReplrServer = require('./src/ReplrServer')
-ReplrWorkerPassthrough = require('./src/ReplrWorkerPassthrough')
+ReplrServer = require('./ReplrServer')
+ReplrWorkerPassthrough = require('./ReplrWorkerPassthrough')
 
 # Expose simple REPL creation and worker REPL options
 funcs = 
