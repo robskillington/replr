@@ -100,6 +100,11 @@ class ReplrServer extends EventEmitter
     # Track client and remove when disconnect occurs
     client = new ReplrClient(@, @options, socket, r)
     @clients.push client
+    socket.on 'error', ()=>
+      if err && err.code == 'EPIPE'
+        return
+
+      throw err
     socket.on 'end', ()=>
       @clients.splice @clients.indexOf(client), 1
 
