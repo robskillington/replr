@@ -6,18 +6,24 @@
     "type": "git",
     "url": "https://github.com/robskillington/replr"
   },
+  "main": "lib/index.js",
   "author": {
     "name": "Rob Skillington",
     "url": "http://github.com/robskillington"
   },
+  "scripts": {
+    "prepublish": "coffee --compile --output lib/ src/"
+  },
   "dependencies": {
     "async": "0.2.9",
-    "coffee-script": "1.6.3",
     "colors": "0.6.2",
     "doc": "0.0.3",
     "memorystream": "0.2.0",
     "merge": "1.1.2",
     "portscanner": "^1.0.0",
     "terminal": "0.1.4"
+  },
+  "devDependencies": {
+    "coffee-script": "1.6.3"
   }
 }
