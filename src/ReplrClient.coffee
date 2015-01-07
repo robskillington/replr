@@ -85,6 +85,7 @@ class ReplrClient
       replOptions: @options
       cmds: cmds
       vars: vars
+      write: write
 
     if cluster.isMaster
       exports.workers = workers 
