@@ -2,6 +2,7 @@ cluster = require('cluster')
 colors = require('colors')
 doc = require('doc')
 terminal = require('terminal')
+util = require('util')
 
 class ReplrClient
 
@@ -65,11 +66,17 @@ class ReplrClient
         @send description
         @write prompt
         @repl.prompt = prompt
-      return 'printing...'
+      return
 
     select = (workerId)=>
       doc: "Changes into the worker context with the given workerId"
       @changeWorker workerId
+
+    write = (obj, options={colors: true})=>
+      doc: "Writes text or util.inspect(obj, text) to this REPL session, useful for other exported methods"
+      text = if typeof obj == 'string' then obj else util.inspect obj, options
+      @send text
+      return
 
     exports = 
       help: 'Type .help for repl help, use cmds() to get commands in current context'
