@@ -104,7 +104,10 @@ class ReplrClient
 
 
   getCommands: ()->
-    exported = @repl.context.exported
+    exported = {}
+    for key, value of @repl.context.exported
+      # Use the unbound version of the method for unwrapping documentation if available
+      exported[key] = if typeof value.unbound == 'function' then value.unbound else value
     commands = (key for key in Object.keys(exported) when typeof exported[key] == 'function')
 
     signatureAsString = (name, func)-> "#{key}(#{doc.docArgsAsArray(func).join(', ')})"
@@ -119,8 +122,6 @@ class ReplrClient
     descriptions = []
     for key in commands
       func = exported[key]
-      # Use the unbound version of the method for unwrapping documentation if available
-      func = if typeof func.unbound == 'function' then func.unbound else func
       signature = terminal.rpad signatureAsString(key, func), indentBy
       described = ''
       terminal.printWrapped doc.docAsString(func), 80, indentBy, (out)->
