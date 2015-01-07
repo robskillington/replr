@@ -120,7 +120,9 @@ class ReplrServer extends EventEmitter
         for key, value of exports
           # Bind exports to the context to call other methods and "write" with ease
           if typeof value == 'function'
+            originalValue = value
             value = value.bind r.context
+            value.unbound = originalValue
 
           r.context.exported[key] = value
           r.context[key] = value

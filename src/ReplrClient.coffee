@@ -119,6 +119,8 @@ class ReplrClient
     descriptions = []
     for key in commands
       func = exported[key]
+      # Use the unbound version of the method for unwrapping documentation if available
+      func = if typeof func.unbound == 'function' then func.unbound else func
       signature = terminal.rpad signatureAsString(key, func), indentBy
       described = ''
       terminal.printWrapped doc.docAsString(func), 80, indentBy, (out)->
