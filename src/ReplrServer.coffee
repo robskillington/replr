@@ -118,6 +118,10 @@ class ReplrServer extends EventEmitter
       exports = @options.exports(client)
       if exports && Object.keys(exports).length > 0 
         for key, value of exports
+          # Bind exports to the context to call other methods and "write" with ease
+          if typeof value == 'function'
+            value = value.bind r.context
+
           r.context.exported[key] = value
           r.context[key] = value
 
