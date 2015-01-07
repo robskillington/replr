@@ -189,7 +189,7 @@ class ReplrClient
     if cluster.isMaster
       @getWorkersDescription (description)=>
         callback  """
-                  #{title} #{@options.name}[Cluster]
+                  #{title} #{@options.name}[Master]
 
                   #{@indent(description, 2)}
 
