@@ -52,10 +52,16 @@ class ReplrServer extends EventEmitter
         return
     
       @socketServer = net.createServer @open.bind(@)
+
       @socketServer.on 'listening', ()=>
         @started = true
         @starting = false
         @emit 'listening'
+
+      onError = (err)=>
+        callback err if callback
+
+      @socketServer.once 'error', onError
 
       try
         @socketServer.listen @options.port
@@ -63,6 +69,8 @@ class ReplrServer extends EventEmitter
         @started = false
         @starting = false
         callback err if callback
+
+      @socketServer.removeListener 'error', onError
 
     if typeof @options.port == 'number'
       portscanner.checkPortStatus @options.port, '127.0.0.1', onVerified
