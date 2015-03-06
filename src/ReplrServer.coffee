@@ -22,7 +22,7 @@ class ReplrServer extends EventEmitter
     useColors: false
     describeWorker: null
 
-  @::OPTIONS_REPL_KEYS = ['port', 'prompt', 'terminal', 'useColors']
+  @::OPTIONS_REPL_KEYS = ['port', 'prompt', 'terminal', 'useColors', 'useGlobal', 'ignoreUndefined']
 
   constructor: (options, start=true)->
     if options 
