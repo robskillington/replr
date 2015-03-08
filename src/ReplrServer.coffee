@@ -25,15 +25,15 @@ class ReplrServer extends EventEmitter
   @::OPTIONS_REPL_KEYS = ['port', 'prompt', 'terminal', 'useColors', 'useGlobal', 'ignoreUndefined']
 
   constructor: (options, start=true)->
-    if options 
-      if options.port
-        if typeof options.port == 'number'
-          throw new Error('bad port') if !Util::isInt(options.port) || options.port < 1
-        else if typeof options.port != 'string'
-          throw new Error('bad port')
-      if options.prompt
-        throw new Error('bad prompt') if typeof options.prompt != 'string'
-      #todo: validate other options
+    options = options || {}
+    if options.port
+      if typeof options.port == 'number'
+        throw new Error('bad port') if !Util::isInt(options.port) || options.port < 1
+      else if typeof options.port != 'string'
+        throw new Error('bad port')
+    if options.prompt
+      throw new Error('bad prompt') if typeof options.prompt != 'string'
+    #todo: validate other options
 
     @options = merge @OPTIONS_DEFAULT, options
     @clients = []
@@ -88,7 +88,7 @@ class ReplrServer extends EventEmitter
         @emit 'close'
         callback() if callback
     else
-      callback(new Error('Already closed'))
+      callback(new Error('Already closed')) if callback
 
 
   open: (socket)->

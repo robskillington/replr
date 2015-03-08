@@ -12,7 +12,10 @@
     "url": "http://github.com/robskillington"
   },
   "scripts": {
-    "prepublish": "coffee --compile --output lib/ src/"
+    "prepublish": "coffee --compile --output lib/ src/",
+    "test": "tape test/test.js | tap-spec",
+    "cover": "ibrik cover test/index.coffee && istanbul check-coverage --branches=10",
+    "view-cover": "istanbul report html && opn ./coverage/index.html"
   },
   "dependencies": {
     "async": "0.2.9",
@@ -24,6 +27,11 @@
     "terminal": "0.1.4"
   },
   "devDependencies": {
-    "coffee-script": "1.6.3"
+    "coffee-script": "1.6.3",
+    "duplexer": "^0.1.1",
+    "ibrik": "^2.0.0",
+    "opn": "^1.0.1",
+    "tap-spec": "^2.2.2",
+    "tape": "^3.5.0"
   }
 }
