@@ -1,6 +1,6 @@
 {
   "name": "replr",
-  "description": "Remote REPL access for Node apps/services with Cluster hosted support",
+  "description": "REPL remote access for Node apps/services with cluster and worker selection support",
   "version": "0.2.16",
   "repository": {
     "type": "git",
