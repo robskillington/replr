@@ -1,7 +1,7 @@
 {
   "name": "replr",
   "description": "REPL remote access for Node apps/services with cluster and worker selection support",
-  "version": "0.2.16",
+  "version": "1.0.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/robskillington/replr"
