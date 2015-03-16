@@ -123,14 +123,6 @@ class ReplrServer extends EventEmitter
     replOptions.input = socket
     replOptions.output = socket
 
-    if typeof socket.setRawMode == 'function'
-      console.log 'setting rawMode on socket'
-      socket.setRawMode true
-
-    if socket.readable && typeof socket.readable.setRawMode == 'function'
-      console.log 'setting rawMode on socket.readable'
-      socket.readable.setRawMode true
-
     r = repl.start replOptions
 
     # Ensure we close the socket if repl is closed
