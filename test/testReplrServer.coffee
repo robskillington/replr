@@ -54,7 +54,7 @@ test 'Server supports REPL on worker', (assert)->
     assert.end()
 
 startServerAndConnect = (callback)->
-  server = new ReplrServer({useGlobal: true, ignoreUndefined: true})
+  server = new ReplrServer({mode: 'tcp', useGlobal: true, ignoreUndefined: true})
   server.on 'listening', ()->
     sock = new net.Socket()
     sock.setEncoding 'utf8'

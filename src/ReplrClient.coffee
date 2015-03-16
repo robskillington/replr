@@ -1,5 +1,5 @@
 cluster = require('cluster')
-colors = require('colors')
+chalk = require('chalk')
 doc = require('doc')
 terminal = require('terminal')
 util = require('util')
@@ -15,7 +15,7 @@ class ReplrClient
     @::TERM_CODES_VALUES.push value
 
   constructor: (@server, @options, @socket, @repl)->
-    # Sets properties
+    @interceptTabsForCompletions()
 
 
   write: (msg, callback=null)->
@@ -28,8 +28,7 @@ class ReplrClient
           # Noop, some versions of node does not support unicode literals
 
     if !@options.useColors
-      if typeof msg.stripColors == 'function'
-        msg = msg.stripColors()
+      msg = chalk.stripColor msg
 
     if callback
       @socket.write msg, callback
@@ -134,9 +133,9 @@ class ReplrClient
       descriptions.unshift "#{terminal.rpad('--', indentBy)}--"
       descriptions.unshift "#{terminal.rpad('function', indentBy)}documentation"
       descriptions.unshift ''
-      descriptions.unshift "(#{commands.length}) commands in the local REPL context".cyan
+      descriptions.unshift chalk.cyan("(#{commands.length}) commands in the local REPL context")
     else
-      descriptions = ["There are no commands in the local REPL context".cyan]
+      descriptions = [chalk.cyan("There are no commands in the local REPL context")]
 
     return descriptions.join "\n"
 
@@ -162,9 +161,9 @@ class ReplrClient
       descriptions.unshift "#{terminal.rpad('--', indentBy)}--"
       descriptions.unshift "#{terminal.rpad('name', indentBy)}info"
       descriptions.unshift ''
-      descriptions.unshift "(#{vars.length}) variables in the local REPL context".cyan
+      descriptions.unshift chalk.cyan("(#{vars.length}) variables in the local REPL context")
     else
-      descriptions = ["There are no variables in the local REPL context".cyan]
+      descriptions = [chalk.cyan("There are no variables in the local REPL context")]
 
     return descriptions.join "\n"
 
@@ -176,7 +175,7 @@ class ReplrClient
       nonEssentialLineBreak = if active > 0 then "\n" else ''
 
       callback """
-               #{"(#{active}) worker active#{plural}#{nonEssentialLineBreak}".cyan}
+               #{chalk.cyan("(#{active}) worker active#{plural}#{nonEssentialLineBreak}")}
                #{description}
                """
 
@@ -187,7 +186,7 @@ class ReplrClient
 
 
   getWelcomeMessage: (callback)->
-    title = 'Welcome'.cyan.bold
+    title = chalk.cyan.bold('Welcome')
     hint = 'Hint: use cmds() to print the current exports available to you'
 
     if cluster.isMaster
@@ -209,6 +208,46 @@ class ReplrClient
 
                 #{@repl.prompt}
                 """
+
+
+  getTabCompletions: (input, callback)->
+    @repl.complete @inputBuffer, (err, results)=>
+      if !err
+        completions = results[0]
+        text = ''
+        for completion in completions
+          text += completion + '\n\n'
+
+        callback text, completions
+      else
+        callback '', []
+
+
+  interceptTabsForCompletions: ()->
+    @inputBuffer = ''
+    @socketRead = @socket.read
+    @socket.read = ()=>
+      result = @socketRead.apply @socket, arguments
+      input = ''
+      try
+        input = result.toString('utf8')
+      catch exc
+        # No-op
+      if input == '\t'
+        @getTabCompletions @inputBuffer, (text, completions)=>
+          if completions.length == 1
+            # Complete for user
+            remaining = completions[0].substr(@inputBuffer.length)
+            @socket.emit 'data', remaining
+            @socket.write remaining
+          else
+            @write "#{text}#{@repl.prompt}#{@inputBuffer}"
+        return null
+      else if input == '\n' || input == '\r'
+        @inputBuffer = ''
+      else if input
+        @inputBuffer += input
+      return result
 
 
 module.exports = ReplrClient

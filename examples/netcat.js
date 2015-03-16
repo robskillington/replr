@@ -1,14 +1,13 @@
 var chalk = require('chalk');
-var duplexer = require('duplexer');
-var keypress = require('keypress');
 var replr = require('../lib/');
-var startReplrClient = require('../bin/replr');
 
 var statefulThing = {
     counter: 1
 };
 
 var options = {
+    mode: 'tcp',
+    port: 2323,
     name: 'MyApp console',
     prompt: chalk.gray('myApp> '),
     useColors: true,
@@ -26,5 +25,5 @@ var options = {
     }
 };
 
-replr.create(options);
-startReplrClient();
+var replrServer = replr.create(options);
+console.log('Now open REPL with: nc localhost 2323');

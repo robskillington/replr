@@ -11,20 +11,26 @@
     "name": "Rob Skillington",
     "url": "http://github.com/robskillington"
   },
+  "bin": {
+    "replr": "./bin/replr.js"
+  },
   "scripts": {
-    "prepublish": "coffee --compile --output lib/ src/",
+    "prepublish": "npm run compile",
+    "compile": "coffee --compile --output lib/ src/",
     "test": "tape test/test.js | tap-spec",
     "cover": "ibrik cover test/index.coffee && istanbul check-coverage --branches=10",
     "view-cover": "istanbul report html && opn ./coverage/index.html"
   },
   "dependencies": {
     "async": "0.2.9",
-    "colors": "0.6.2",
+    "chalk": "^1.0.0",
     "doc": "0.0.3",
+    "keypress": "^0.2.1",
     "memorystream": "0.2.0",
     "merge": "1.1.2",
     "portscanner": "^1.0.0",
-    "terminal": "0.1.4"
+    "terminal": "0.1.4",
+    "yargs": "^3.5.4"
   },
   "devDependencies": {
     "coffee-script": "1.6.3",

@@ -1,3 +1,4 @@
+var chalk = require('chalk');
 var replr = require('../lib/');
 
 var statefulThing = {
@@ -5,8 +6,10 @@ var statefulThing = {
 };
 
 var options = {
+    mode: 'http',
+    port: 2323,
     name: 'MyApp console',
-    prompt: 'myApp> '.grey,
+    prompt: chalk.gray('myApp> '),
     useColors: true,
     useGlobal: true,
     ignoreUndefined: true,
@@ -22,5 +25,5 @@ var options = {
     }
 };
 
-replr.create(options);
-console.log('Now open REPL with `nc localhost 2323` or equivalent');
+var replrServer = replr.create(options);
+console.log('Now open REPL with: node bin/replr.js localhost 2323');

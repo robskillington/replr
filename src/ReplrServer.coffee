@@ -1,8 +1,9 @@
 repl = require('repl')
 net = require('net')
+http = require('http')
 merge = require('merge')
 cluster = require('cluster')
-colors = require('colors')
+chalk = require('chalk')
 terminal = require('terminal')
 async = require('async')
 EventEmitter = require('events').EventEmitter
@@ -17,10 +18,13 @@ class ReplrServer extends EventEmitter
   @::OPTIONS_DEFAULT = 
     name: 'Replr'
     port: 2323
-    prompt: 'replr> '.grey
+    mode: 'http'
+    prompt: chalk.gray('replr> ')
     terminal: false
     useColors: false
     describeWorker: null
+
+  @::OPTIONS_MODES = ['http', 'tcp', 'unixdomainsocket', 'raw', 'noserver']
 
   @::OPTIONS_REPL_KEYS = ['port', 'prompt', 'terminal', 'useColors', 'useGlobal', 'ignoreUndefined']
 
@@ -33,6 +37,8 @@ class ReplrServer extends EventEmitter
         throw new Error('bad port')
     if options.prompt
       throw new Error('bad prompt') if typeof options.prompt != 'string'
+    if options.mode
+      throw new Error('bad mode') if @OPTIONS_MODES.indexOf(options.mode) == -1
     #todo: validate other options
 
     @options = merge @OPTIONS_DEFAULT, options
@@ -43,20 +49,38 @@ class ReplrServer extends EventEmitter
 
 
   start: (callback)->
+    ready = ()=>
+      @started = true
+      @starting = false
+      @emit 'listening'
+
     return if @starting
     @starting = true
+
+    return ready() if @options.mode == 'noserver' || @options.port == false
 
     onVerified = (err, status)=>
       if err || status == 'open'
         callback(err || new Error('Port already taken')) if callback
         return
-    
-      @socketServer = net.createServer @open.bind(@)
+
+      mode = @options.mode
+      if mode == 'tcp' || mode == 'unixdomainsocket' || mode == 'raw'
+        @socketServer = net.createServer @open.bind(@)
+      else
+        @socketServer = http.createServer ()=> # No-op
+        @socketServer.on 'upgrade', (req, socket, head)=>
+          try
+            str = head.toString('utf8')
+            if req.headers && req.headers.upgrade == 'replr'
+              @open socket
+            else
+              socket.end()
+          catch exc
+            socket.end()
 
       @socketServer.on 'listening', ()=>
-        @started = true
-        @starting = false
-        @emit 'listening'
+        ready()
 
       onError = (err)=>
         callback err if callback
@@ -99,6 +123,14 @@ class ReplrServer extends EventEmitter
     replOptions.input = socket
     replOptions.output = socket
 
+    if typeof socket.setRawMode == 'function'
+      console.log 'setting rawMode on socket'
+      socket.setRawMode true
+
+    if socket.readable && typeof socket.readable.setRawMode == 'function'
+      console.log 'setting rawMode on socket.readable'
+      socket.readable.setRawMode true
+
     r = repl.start replOptions
 
     # Ensure we close the socket if repl is closed
@@ -109,10 +141,8 @@ class ReplrServer extends EventEmitter
     client = new ReplrClient(@, @options, socket, r)
     @clients.push client
     socket.on 'error', (err)=>
-      if err && err.code == 'EPIPE'
-        return
-
-      throw err
+      return if err && err.code == 'EPIPE'
+      # Let the socket close up
     socket.on 'end', ()=>
       @clients.splice @clients.indexOf(client), 1
 
