@@ -5,6 +5,7 @@ var merge = require('merge');
 var net = require('net');
 
 module.exports = startReplrClient;
+module.exports.attachStdinStdoutToReplStream = attachStdinStdoutToReplStream;
 
 if (require.main === module) {
     var options = {};
@@ -23,7 +24,7 @@ if (require.main === module) {
 function startReplrClient(options) {
     options = options || {};
     options = merge({
-        host: 'localhost', 
+        host: 'localhost',
         port: 2323,
         mode: 'http',
         url: '/replr'
@@ -39,11 +40,11 @@ function startReplrClient(options) {
                'Connection: Upgrade\r\n' +
                '\r\n');
         }
-        connectStdinAndStdoutWithDuplexStream(socket);
+        attachStdinStdoutToReplStream(socket);
     });
 }
 
-function connectStdinAndStdoutWithDuplexStream(stream) {
+function attachStdinStdoutToReplStream(stream) {
     keypress(process.stdin);
     process.stdin.on('keypress', function onKeypress(ch, key) {
         try {
