@@ -1,4 +1,3 @@
-repl = require('repl')
 net = require('net')
 http = require('http')
 merge = require('merge')
@@ -117,34 +116,31 @@ class ReplrServer extends EventEmitter
       callback(new Error('Already closed')) if callback
 
 
-  open: (socket)->
+  open: (socket, overriddenOptions={})->
     # Start session with options
     replOptions = {}
     for key in @OPTIONS_REPL_KEYS
       replOptions[key] = @options[key] if @options.hasOwnProperty key
-    replOptions.input = socket
-    replOptions.output = socket
 
-    r = repl.start replOptions
+    clientOptions = merge(overriddenOptions, @options)
 
-    # Ensure we close the socket if repl is closed
-    r.on 'exit', ()=>
-      socket.end()
+    client = new ReplrClient(@, socket, clientOptions, replOptions)
+    
+    @clients.push client
 
     # Track client and remove when disconnect occurs
-    client = new ReplrClient(@, @options, socket, r)
-    @clients.push client
-    socket.on 'error', (err)=>
-      return if err && err.code == 'EPIPE'
-      # Let the socket close up
     socket.on 'end', ()=>
       @clients.splice @clients.indexOf(client), 1
 
+    socket.on 'error', (err)=>
+      return if err && err.code == 'EPIPE'
+      # Let the socket close up
+
     # Setup context variables from default exports and options
-    r.context.exported = {}
+    client.repl.context.exported = {}
     for key, value of client.exports()
-      r.context.exported[key] = value
-      r.context[key] = value
+      client.repl.context.exported[key] = value
+      client.repl.context[key] = value
 
     if @options.exports && typeof @options.exports == 'function'
       exports = @options.exports(client)
@@ -153,14 +149,16 @@ class ReplrServer extends EventEmitter
           # Bind exports to the context to call other methods and "write" with ease
           if typeof value == 'function'
             originalValue = value
-            value = value.bind r.context
+            value = value.bind client.repl.context
             value.unbound = originalValue
 
-          r.context.exported[key] = value
-          r.context[key] = value
+          client.repl.context.exported[key] = value
+          client.repl.context[key] = value
 
     # Welcome client
     client.welcome()
+
+    return client
 
 
   forwardToWorker: (client, worker)->

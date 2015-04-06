@@ -1,26 +1,55 @@
+async = require('async')
+repl = require('repl')
 cluster = require('cluster')
 chalk = require('chalk')
 doc = require('doc')
 terminal = require('terminal')
 util = require('util')
+Transform = require('stream').Transform
 
 class ReplrClient
 
   @::TERM_CODES = 
     clear: '\u001B[2J'
+    clearToEndOfLine: '\u001b[K'
     zeroPos: '\u001B[0;0f'
+    moveLeft: '\u001b[D'
+    moveRight: '\u001b[C'
+    moveUp: '\u001b[A'
+    moveDown: '\u001b[B'
+    saveCursor: '\u001b7'
+    restoreCursor: '\u001b8'
 
   @::TERM_CODES_VALUES = []
   for key, value of @::TERM_CODES
     @::TERM_CODES_VALUES.push value
 
-  constructor: (@server, @options, @socket, @repl)->
-    @interceptTabsForCompletions()
+  constructor: (@server, @socket, @options, replOptions)->
+    @width = @options.width || 80
+    @height = @options.height || 40
+
+    replOptions.input = new InputInterceptor({
+      client: @,
+      socket: socket
+    })
+    replOptions.output = socket
+
+    @repl = repl.start replOptions
+
+    # Ensure we close the socket if repl is closed
+    @repl.on 'exit', ()=>
+      @socket.end()
+
+
+  resize: (width, height)->
+    if typeof width == 'number' && typeof height == 'number'
+      @width = width
+      @height = height
 
 
   write: (msg, callback=null)->
     if !@options.terminal
-      msg = terminal.stripStyles(msg)
+      msg = terminal.stripStyles msg
       for value in @TERM_CODES_VALUES
         try
           msg = msg.replace new RegExp(value, 'g'), ''
@@ -45,7 +74,7 @@ class ReplrClient
     spaces = ''
     for i in [1..indentBy]
       spaces += ' '
-    "#{spaces}#{str.replace(/\n/g, "\n" + spaces)}"
+    return "#{spaces}#{str.replace(/\n/g, "\n" + spaces)}"
 
 
   exports: ()->
@@ -123,7 +152,7 @@ class ReplrClient
       func = exported[key]
       signature = terminal.rpad signatureAsString(key, func), indentBy
       described = ''
-      terminal.printWrapped doc.docAsString(func), 80, indentBy, (out)->
+      terminal.printWrapped doc.docAsString(func), @options.width, indentBy, (out)->
         described += out + "\n"
 
       descriptions.push "#{signature}#{described.substring(indentBy)}"
@@ -192,7 +221,7 @@ class ReplrClient
     if cluster.isMaster
       @getWorkersDescription (description)=>
         callback  """
-                  #{title} #{@options.name}[Master]
+                  #{title} #{@options.name}[cluster.Master]
 
                   #{@indent(description, 2)}
 
@@ -202,7 +231,7 @@ class ReplrClient
                   """
     else 
       callback  """
-                #{title} to #{@options.name}[Worker]
+                #{title} to #{@options.name}[cluster.Worker]
 
                 #{hint}
 
@@ -211,43 +240,110 @@ class ReplrClient
 
 
   getTabCompletions: (input, callback)->
-    @repl.complete @inputBuffer, (err, results)=>
+    @repl.complete input, (err, results)=>
       if !err
         completions = results[0]
+
+        longest = 0
+        for key in completions
+          longest = key.length if key.length > longest
+
+        columns = Math.floor(@width/longest)
+        rows = Math.ceil(completions.length/columns)
+
+        remaining = completions.concat().sort()
+        columnsText = []
+        while columnsText.length < columns
+          columnsText.push remaining.splice(0, rows)
+
         text = ''
-        for completion in completions
-          text += completion + '\n\n'
+        padding = 2
+        for i in [0...rows]
+          for j in [0...columns]
+            if columnsText[j][i]
+              text += terminal.rpad columnsText[j][i], longest+padding
+          text += '\n'
 
         callback text, completions
       else
         callback '', []
 
 
-  interceptTabsForCompletions: ()->
+class InputInterceptor extends Transform
+  @::MAX_PAST_ENTRIES = 64
+
+  constructor: (options)->
+    super(options)
+    @client = options.client
+    @socket = options.socket
+    @socket.pipe @
     @inputBuffer = ''
-    @socketRead = @socket.read
-    @socket.read = ()=>
-      result = @socketRead.apply @socket, arguments
-      input = ''
-      try
-        input = result.toString('utf8')
-      catch exc
-        # No-op
-      if input == '\t'
-        @getTabCompletions @inputBuffer, (text, completions)=>
-          if completions.length == 1
-            # Complete for user
-            remaining = completions[0].substr(@inputBuffer.length)
-            @socket.emit 'data', remaining
-            @socket.write remaining
-          else
-            @write "#{text}#{@repl.prompt}#{@inputBuffer}"
-        return null
-      else if input == '\n' || input == '\r'
-        @inputBuffer = ''
-      else if input
+    @pastEntries = []
+    @inputCursor = 0
+
+
+  resume: ()->
+    @socket.resume()
+
+
+  _transform: (chunk, encoding, callback)->
+    input = ''
+    try
+      input = chunk.toString('utf8')
+    catch exc
+      @push chunk
+      return callback()
+
+    async.each [0...input.length], (i, nextCallback)=>
+      charCode = input[i].charCodeAt 0
+      @_transformSingleInput input[i], charCode, nextCallback
+    , callback
+
+
+  _transformSingleInput: (input, charCode, callback)->
+    if input == '\t'
+      @client.getTabCompletions @inputBuffer, (text, completions)=>
+        if completions.length == 1
+          # Complete for user
+          remaining = completions[0].substr @inputBuffer.length
+          @inputBuffer += remaining
+          @client.write remaining
+          callback()
+        else
+          # List completions
+          @client.write "\n#{text}#{@client.repl.prompt}#{@inputBuffer}"
+          callback()
+
+    else if input == '\n' || input == '\r'
+      # Endline, push read buffer and return
+      @push @inputBuffer
+      @pastEntries.push @inputBuffer
+      @pastEntries = @pastEntries.slice 1 if @pastEntries.length > @MAX_PAST_ENTRIES
+      @inputBuffer = ''
+      @inputCursor = 0
+      @push input
+      callback()
+
+    else if charCode == 127
+      # Backspace
+      if @inputBuffer.length > 0
+        @inputBuffer = @inputBuffer.slice 0, -1
+        @client.write ReplrClient::TERM_CODES.moveLeft
+        @client.write ReplrClient::TERM_CODES.clearToEndOfLine
+        @inputCursor--
+      callback()
+
+    #todo: 
+    # - add move left, right
+    # - add multiline support
+    # - allow up/down nav of past entries
+
+    else
+      # Anything else add to the buffer
+      if (charCode > 31 && charCode < 127) || charCode > 160
+        @inputCursor++
         @inputBuffer += input
-      return result
+      callback()
 
 
 module.exports = ReplrClient

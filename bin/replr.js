@@ -47,7 +47,7 @@ function startReplrClient(options) {
 function attachStdinStdoutToReplStream(stream) {
     keypress(process.stdin);
     process.stdin.on('keypress', function onKeypress(ch, key) {
-        try {
+        if (ch) {
             stream.write(ch);
             if (ch === '\r') {
                 ch = '\n';
@@ -56,7 +56,9 @@ function attachStdinStdoutToReplStream(stream) {
                 ch = '';
             }
             process.stdout.write(ch);
-        } catch (exc) {}
+        } else if (key) {
+            stream.write(key.sequence);
+        }
 
         var isCtrlC = key && key.ctrl && key.name === 'c';
         var isCtrlD = key && key.ctrl && key.name === 'd';
