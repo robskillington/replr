@@ -27,16 +27,18 @@
     "doc": "0.0.3",
     "keypress": "^0.2.1",
     "memorystream": "0.2.0",
-    "merge": "1.1.2",
     "portscanner": "^1.0.0",
     "terminal": "0.1.4",
+    "xtend": "^4.0.0",
     "yargs": "^3.5.4"
   },
   "devDependencies": {
     "coffee-script": "1.6.3",
     "duplexer": "^0.1.1",
+    "find-port": "^1.0.1",
     "ibrik": "^2.0.0",
     "opn": "^1.0.1",
+    "ready-signal": "^1.2.0",
     "tap-spec": "^2.2.2",
     "tape": "^3.5.0"
   }

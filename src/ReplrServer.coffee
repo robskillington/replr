@@ -1,6 +1,6 @@
 net = require('net')
 http = require('http')
-merge = require('merge')
+extend = require('xtend')
 cluster = require('cluster')
 chalk = require('chalk')
 terminal = require('terminal')
@@ -14,7 +14,7 @@ Util = require('./Util')
 
 class ReplrServer extends EventEmitter
 
-  @::OPTIONS_DEFAULT = 
+  @::OPTIONS_DEFAULT =
     name: 'Replr'
     port: 2323
     mode: 'http'
@@ -40,7 +40,7 @@ class ReplrServer extends EventEmitter
       throw new Error('bad mode') if @OPTIONS_MODES.indexOf(options.mode) == -1
     #todo: validate other options
 
-    @options = merge @OPTIONS_DEFAULT, options
+    @options = extend @OPTIONS_DEFAULT, options
     @clients = []
     @started = false
     @starting = false
@@ -99,7 +99,7 @@ class ReplrServer extends EventEmitter
       onVerified null, 'free'
     else if typeof @options.port == 'number'
       portscanner.checkPortStatus @options.port, '127.0.0.1', onVerified
-    else 
+    else
       onVerified null, 'free'
 
 
@@ -122,10 +122,10 @@ class ReplrServer extends EventEmitter
     for key in @OPTIONS_REPL_KEYS
       replOptions[key] = @options[key] if @options.hasOwnProperty key
 
-    clientOptions = merge(overriddenOptions, @options)
+    clientOptions = extend(overriddenOptions, @options)
 
     client = new ReplrClient(@, socket, clientOptions, replOptions)
-    
+
     @clients.push client
 
     # Track client and remove when disconnect occurs
@@ -144,7 +144,7 @@ class ReplrServer extends EventEmitter
 
     if @options.exports && typeof @options.exports == 'function'
       exports = @options.exports(client)
-      if exports && Object.keys(exports).length > 0 
+      if exports && Object.keys(exports).length > 0
         for key, value of exports
           # Bind exports to the context to call other methods and "write" with ease
           if typeof value == 'function'
@@ -162,11 +162,11 @@ class ReplrServer extends EventEmitter
 
 
   forwardToWorker: (client, worker)->
-    msg = 
+    msg =
       type: ReplrEvents::WORKER_RECEIVE
       options: @options
 
-    # Keep the REPL alive but attached to dummy so we 
+    # Keep the REPL alive but attached to dummy so we
     # only remove the client after connection closes
     dummy = new MemoryStream()
     client.repl.inputStream = dummy
@@ -190,7 +190,7 @@ class ReplrServer extends EventEmitter
       , (err, results)=>
         callback results.join("\n")
 
-    else 
+    else
       callback (formatTitle(id, worker) for id, worker of cluster.workers).join("\n")
 
 
