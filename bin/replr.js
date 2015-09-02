@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 var argv = require('yargs').argv;
 var keypress = require('keypress');
-var merge = require('merge');
+var xtend = require('xtend');
 var net = require('net');
 
 module.exports = startReplrClient;
@@ -23,7 +23,7 @@ if (require.main === module) {
 
 function startReplrClient(options) {
     options = options || {};
-    options = merge({
+    options = xtend({
         host: 'localhost',
         port: 2323,
         mode: 'http',

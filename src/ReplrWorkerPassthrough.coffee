@@ -1,4 +1,4 @@
-merge = require('merge')
+xtend = require('xtend')
 ReplrServer = require('./ReplrServer')
 ReplrClient = require('./ReplrClient')
 ReplrEvents = require('./ReplrEvents')
@@ -12,7 +12,7 @@ class ReplrWorkerPassthrough extends ReplrServer
     forwarded = ReplrWorkerPassthrough::forwarded
     process.on 'message', (msg, handle)->
       if msg && typeof msg == 'object' && msg.type == ReplrEvents::WORKER_RECEIVE
-        options = merge msg.options, ReplrWorkerPassthrough::workerOptions
+        options = xtend msg.options, ReplrWorkerPassthrough::workerOptions
 
         # Create our passthrough
         passthrough = new ReplrWorkerPassthrough(options)
